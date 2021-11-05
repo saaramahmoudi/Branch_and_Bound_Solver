@@ -55,7 +55,57 @@ void print_binary_tree(Node* root, string previous_log){
 }
 
 bool branch_and_bound_optimization(Node* node){
-    
+    int clause_status = -1; // 0 is false, 1 is true, 2 is dont know yet
+    int num_of_zero = 0;
+    // cout << "====================================" << endl;
+    // cout << node->depth << " " << node->path << endl;
+    for(int i = 0; i < num_of_clauses; i++){
+        clause_status = -1;
+        for(int j = 0; j < c[i].vars_len; j++){
+            if(abs(c[i].vars[j]) >= node->depth){
+                clause_status = 2;
+                continue;
+            }
+            if(c[i].vars[j] > 0 && CHECK_BIT(node->path,abs(c[i].vars[j])-1)){
+                clause_status = 1;
+                break;
+            }
+            if(c[i].vars[j] < 0 && !CHECK_BIT(node->path,abs(c[i].vars[j])-1)){
+                clause_status = 1;
+                break;
+            }
+        }
+        if(clause_status == -1){
+            clause_status = 0;
+        }
+        if(clause_status == 0){
+            num_of_zero++;
+        }
+
+        // if(clause_status == 0){
+        //     cout << "Clouse " << i+1 << " is false" << endl;
+        // }
+        // else if(clause_status == 1){
+        //     cout << "Clouse " << i+1 << " is true" << endl;
+        // }
+        // else if(clause_status == 2){
+        //     cout << "Clouse " << i+1 << " is DONT know" << endl;
+        // }
+    }
+    // cout << num_of_zero << endl;
+    if(num_of_zero >= best_sol){//should be pruned
+        // cout << "pruned" << endl;
+        // cout << node->depth << " " << node->path << endl;
+        node->pruned = true;
+        return true;
+    }
+    if(num_of_zero <= best_sol && node->depth > num_of_variables){//only leaf node should change the best solution
+        best_sol = num_of_zero;
+        best_leaf = new Node(node->depth,node->path);
+        // cout << "updated" << endl;
+        // cout << num_of_zero << " " << best_sol << endl;
+        // cout << node->depth << " " << node->path << endl;
+    }
     return false;
 }
 
@@ -137,22 +187,13 @@ int main(){
         }
     }
 
-    // for(int i = 0; i < num_of_clauses ; i++){
-    //     cout << c[i].vars_len << endl;
-    //     for(int j = 0; j < c[i].vars_len; j++){
-    //         cout << c[i].vars[j] << " ";
-    //     }
-    //     cout << "==============================" << endl;
-    // }
-    
     best_sol_init();
     cout << best_sol << endl;
     build_tree(root);
-    print_binary_tree(root ,"");
-    // cout << endl;
+    // print_binary_tree(root ,"");
     cout << num_of_traversed_node << endl;
     cout << best_sol << endl;
-    cout << best_leaf->path << endl;
+    // cout << best_leaf->path << endl;
     for(int i = 0; i < num_of_variables; i++){
         if(!CHECK_BIT(best_leaf->path,i)){
             cout << "x" << i+1 << " " << "false" << endl;
