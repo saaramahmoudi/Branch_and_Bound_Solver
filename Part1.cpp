@@ -116,45 +116,67 @@ void build_tree(Node* root){
     if(root->depth == num_of_variables+1)
         return;
     
-    
     int path = root->path | 1UL << (root->depth-1);
     root->right = new Node(root->depth+1,path);
     //check whether we should build right subtree
     root->right->pruned = branch_and_bound_optimization(root->right);
     num_of_traversed_node++;
-    if(!root->right->pruned){ //if not pruned continue building
-        build_tree(root->right);
-    }
     root->left = new Node(root->depth+1,root->path);
     //check whether we should build left subtree
     root->left->pruned = branch_and_bound_optimization(root->left);
     num_of_traversed_node++;
-    if(!root->left->pruned){//if not pruned continue building
-        build_tree(root->left);
+    if(repeat_count[root->depth-1] > not_repeat_count[root->depth-1]){
+        if(!root->right->pruned){ //if not pruned continue building
+            build_tree(root->right);
+        }
+        if(!root->left->pruned){//if not pruned continue building
+            build_tree(root->left);
+        }
+    }
+    else{
+        if(!root->left->pruned){
+            build_tree(root->left);
+        }
+        if(!root->right->pruned){
+            build_tree(root->right);
+        }
     }
     return;
 }
 
 void best_sol_init(){
     //assume all variables are set to false!
-    long best_init = 0;
-    for(int i = 0; i < num_of_variables; i++){
-        if(repeat_count[i] > not_repeat_count[i]){ // set i to true
-            best_init |= 1UL << (i);
-        }
-    }
+    long best_init = 0; //initilazed all to false
+    bool* locked = new bool[num_of_variables];
+    for(int i = 0; i < num_of_variables; i++)
+        locked[i] = false;
     int zero_clauses_num = 0;
     for(int i = 0; i < num_of_clauses; i++){
         bool is_zero = true;
         for(int j = 0; j < c[i].vars_len; j++){
-            // if ~x[i] exists, the clause is not false!
-            if(c[i].vars[j] > 0 && CHECK_BIT(best_init,c[i].vars[j]-1)){
-                is_zero = false;
-                break;
+            int var = abs(c[i].vars[j]);
+            if(locked[var-1]){//if variable has been selected already
+                if(c[i].vars[j] > 0 && CHECK_BIT(best_init,var-1)){
+                    is_zero = false;
+                    break;
+                }
+                if(c[i].vars[j] < 0 && !CHECK_BIT(best_init,var-1)){
+                    is_zero = false;
+                    break;
+                }
             }
-            if(c[i].vars[j] < 0 && !CHECK_BIT(best_init,abs(c[i].vars[j])-1)){
-                is_zero = false;
-                break;
+            else{
+                if(c[i].vars[j] > 0){
+                    best_init |= 1UL << (var-1);
+                    locked[var-1] = true;
+                    is_zero = false;
+                    break;
+                }
+                else{
+                    locked[var-1] = true;
+                    is_zero = false;
+                    break;
+                }
             }
         }
         if(is_zero){
@@ -163,7 +185,6 @@ void best_sol_init(){
     }
     best_sol = zero_clauses_num;
     best_leaf = new Node(num_of_variables+1,best_init);
-
 }
 
 void init(){
@@ -216,18 +237,18 @@ int main(){
 
     best_sol_init();
     cout << best_sol << endl;
-    // build_tree(root);
+    build_tree(root);
     // print_binary_tree(root ,"");
-    // cout << num_of_traversed_node << endl;
-    // cout << best_sol << endl;
-    // // cout << best_leaf->path << endl;
-    // for(int i = 0; i < num_of_variables; i++){
-    //     if(!CHECK_BIT(best_leaf->path,i)){
-    //         cout << "x" << i+1 << " " << "false" << endl;
-    //     }
-    //     else{
-    //         cout << "x" << i+1 << " " << "true" << endl;
-    //     }
+    cout << num_of_traversed_node << endl;
+    cout << best_sol << endl;
+    // cout << best_leaf->path << endl;
+    for(int i = 0; i < num_of_variables; i++){
+        if(!CHECK_BIT(best_leaf->path,i)){
+            cout << "x" << i+1 << " " << "false" << endl;
+        }
+        else{
+            cout << "x" << i+1 << " " << "true" << endl;
+        }
     }
 
     return 0;
