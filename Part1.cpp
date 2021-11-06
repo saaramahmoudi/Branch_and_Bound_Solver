@@ -40,6 +40,8 @@ int num_of_variables = 0;
 int num_of_clauses = 0;
 int best_sol = 0;
 int num_of_traversed_node = 1;
+int* repeat_count;
+int* not_repeat_count;
 Node* best_leaf;
 Clause* c;
 Node* root;
@@ -110,20 +112,23 @@ bool branch_and_bound_optimization(Node* node){
 }
 
 void build_tree(Node* root){
+    
     if(root->depth == num_of_variables+1)
         return;
     
-    num_of_traversed_node++;
+    
     int path = root->path | 1UL << (root->depth-1);
     root->right = new Node(root->depth+1,path);
     //check whether we should build right subtree
     root->right->pruned = branch_and_bound_optimization(root->right);
+    num_of_traversed_node++;
     if(!root->right->pruned){ //if not pruned continue building
         build_tree(root->right);
     }
     root->left = new Node(root->depth+1,root->path);
     //check whether we should build left subtree
     root->left->pruned = branch_and_bound_optimization(root->left);
+    num_of_traversed_node++;
     if(!root->left->pruned){//if not pruned continue building
         build_tree(root->left);
     }
@@ -132,12 +137,22 @@ void build_tree(Node* root){
 
 void best_sol_init(){
     //assume all variables are set to false!
+    long best_init = 0;
+    for(int i = 0; i < num_of_variables; i++){
+        if(repeat_count[i] > not_repeat_count[i]){ // set i to true
+            best_init |= 1UL << (i);
+        }
+    }
     int zero_clauses_num = 0;
     for(int i = 0; i < num_of_clauses; i++){
         bool is_zero = true;
         for(int j = 0; j < c[i].vars_len; j++){
             // if ~x[i] exists, the clause is not false!
-            if(c[i].vars[j] < 0){
+            if(c[i].vars[j] > 0 && CHECK_BIT(best_init,c[i].vars[j]-1)){
+                is_zero = false;
+                break;
+            }
+            if(c[i].vars[j] < 0 && !CHECK_BIT(best_init,abs(c[i].vars[j])-1)){
                 is_zero = false;
                 break;
             }
@@ -147,7 +162,7 @@ void best_sol_init(){
         }
     }
     best_sol = zero_clauses_num;
-    best_leaf = new Node(num_of_variables+1,0);
+    best_leaf = new Node(num_of_variables+1,best_init);
 
 }
 
@@ -157,6 +172,12 @@ void init(){
         c[i].vars = new int[max_num_var_in_clause];
         c[i].vars_len = 0;
         c[i].weight = 0;
+    }
+    repeat_count = new int[num_of_variables];
+    not_repeat_count = new int [num_of_variables];
+    for(int i = 0; i < num_of_variables; i++){
+        repeat_count[i] = 0;
+        not_repeat_count[i] = 0;
     }
     root = new Node(1,0);
 }
@@ -178,6 +199,12 @@ int main(){
         testFile >> input;
         if(input != 0){
             c[read_line].vars[c[read_line].vars_len] = input;
+            if(input > 0){
+                repeat_count[(int) (input-1)]++;
+            }
+            else{
+                not_repeat_count[(int)(abs(input)-1)]++;
+            }
             c[read_line].vars_len++;
         }
         else{
@@ -189,18 +216,18 @@ int main(){
 
     best_sol_init();
     cout << best_sol << endl;
-    build_tree(root);
+    // build_tree(root);
     // print_binary_tree(root ,"");
-    cout << num_of_traversed_node << endl;
-    cout << best_sol << endl;
-    // cout << best_leaf->path << endl;
-    for(int i = 0; i < num_of_variables; i++){
-        if(!CHECK_BIT(best_leaf->path,i)){
-            cout << "x" << i+1 << " " << "false" << endl;
-        }
-        else{
-            cout << "x" << i+1 << " " << "true" << endl;
-        }
+    // cout << num_of_traversed_node << endl;
+    // cout << best_sol << endl;
+    // // cout << best_leaf->path << endl;
+    // for(int i = 0; i < num_of_variables; i++){
+    //     if(!CHECK_BIT(best_leaf->path,i)){
+    //         cout << "x" << i+1 << " " << "false" << endl;
+    //     }
+    //     else{
+    //         cout << "x" << i+1 << " " << "true" << endl;
+    //     }
     }
 
     return 0;
