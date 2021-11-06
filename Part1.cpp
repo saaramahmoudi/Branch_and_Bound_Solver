@@ -120,8 +120,8 @@ void build_tree(Node* root){
     
     if(root->depth == num_of_variables+1)
         return;
-    
-    int path = root->path | 1UL << (root->depth-1);
+    unsigned long long int mover = 1;
+    unsigned long long int path = root->path | mover << (root->depth-1);
     root->right = new Node(root->depth+1,path);
     //check whether we should build right subtree
     root->right->pruned = branch_and_bound_optimization(root->right);
