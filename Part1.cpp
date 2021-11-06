@@ -9,7 +9,12 @@
 #include "graphics.h"
 
 #define max_num_var_in_clause 10
-#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
+
+
+unsigned long long int CHECK_BIT(unsigned long long int var,unsigned long long int pos){
+    unsigned long long int mover = 1;
+    return ((var) & (mover<<(pos)));
+}
 
 using namespace std;
 
@@ -22,12 +27,12 @@ struct Clause{
 
 struct Node{
     int depth; 
-    long path;
+    unsigned long long int path;
     Node* right; //True
     Node* left;  //False
     bool pruned;
 
-    Node(int dep, long p){
+    Node(int dep, unsigned long long int p){
         depth = dep;
         right = NULL;
         left = NULL;
@@ -125,6 +130,7 @@ void build_tree(Node* root){
     //check whether we should build left subtree
     root->left->pruned = branch_and_bound_optimization(root->left);
     num_of_traversed_node++;
+    
     if(repeat_count[root->depth-1] > not_repeat_count[root->depth-1]){
         if(!root->right->pruned){ //if not pruned continue building
             build_tree(root->right);
@@ -145,8 +151,7 @@ void build_tree(Node* root){
 }
 
 void best_sol_init(){
-    //assume all variables are set to false!
-    long best_init = 0; //initilazed all to false
+    unsigned long long int best_init = 0; //initilazed all to false
     bool* locked = new bool[num_of_variables];
     for(int i = 0; i < num_of_variables; i++)
         locked[i] = false;
@@ -165,9 +170,16 @@ void best_sol_init(){
                     break;
                 }
             }
-            else{
+        }
+        if(is_zero){
+            for(int j = 0; j < c[i].vars_len; j++){
+                int var = abs(c[i].vars[j]);
+                if(locked[var-1])
+                    continue;
+                
                 if(c[i].vars[j] > 0){
-                    best_init |= 1UL << (var-1);
+                    unsigned long long int mover = 1;       
+                    best_init |= mover << (var-1);
                     locked[var-1] = true;
                     is_zero = false;
                     break;
@@ -235,6 +247,8 @@ int main(){
         }
     }
 
+    
+    
     best_sol_init();
     cout << best_sol << endl;
     build_tree(root);
@@ -242,6 +256,7 @@ int main(){
     cout << num_of_traversed_node << endl;
     cout << best_sol << endl;
     // cout << best_leaf->path << endl;
+    cout << sizeof(best_leaf->path) << endl;
     for(int i = 0; i < num_of_variables; i++){
         if(!CHECK_BIT(best_leaf->path,i)){
             cout << "x" << i+1 << " " << "false" << endl;
