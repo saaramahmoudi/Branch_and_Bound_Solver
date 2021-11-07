@@ -31,13 +31,18 @@ struct Node{
     Node* right; //True
     Node* left;  //False
     bool pruned;
+    vector<int> remained_claused;
+    int number_of_zero; 
+    Node* parent;
 
-    Node(int dep, unsigned long long int p){
+    Node(int dep, unsigned long long int p, Node* par){
         depth = dep;
         right = NULL;
         left = NULL;
         pruned = false;
         path = p;
+        parent = par;
+        number_of_zero = 0;
     } 
 };
 
@@ -56,7 +61,7 @@ Node* root;
 //print binary tree
 void print_binary_tree(Node* root, string previous_log){
     if (root != NULL){
-        cout << previous_log << root->depth << " " << root->path <<endl;
+        cout << previous_log << root->depth << " " <<  root->path << " " << literals[root->depth-1].second <<endl;
         print_binary_tree(root->left, previous_log+"\t");
         print_binary_tree(root->right,previous_log+"\t");
     }
@@ -70,13 +75,49 @@ bool variable_visited(int var, int size){
     return false;
 
 }
+
+bool pure_literal(vector<int> remained_claused, int var){
+    for(int i = 0; i < remained_claused.size(); i++){
+        int c_index = remained_claused[i];
+        for(int j = 0; j < c[c_index].vars_len; j++){
+            if(c[c_index].vars[j] == var)
+                return false;
+        }
+    }
+    return true;
+}
+
 bool branch_and_bound(Node* node){
     int clause_status = -1;
-    int num_of_zero = 0;
-    // cout << "==========================================" << endl;
-    // cout << node->depth << " " << node->path << endl;
+    int num_of_zero = node->parent->number_of_zero;
+    // cout << "============================" << endl;
+    // cout << node->depth << " " << node->path << endl;\
+    // cout << node->parent->depth << " " << node->parent->path << endl;
+    bool should_skip = false;
 
-    for(int i = 0; i < num_of_clauses; i++){
+    if(CHECK_BIT(node->path,literals[node->parent->depth-1].second-1)){
+        should_skip = pure_literal(node->parent->remained_claused,literals[node->parent->depth-1].second);
+    }
+    else{
+        should_skip = pure_literal(node->parent->remained_claused,-1*literals[node->parent->depth-1].second);
+    }
+    if(should_skip){
+        node->remained_claused = node->parent->remained_claused;
+        node->number_of_zero = node->parent->number_of_zero;
+        // cout << "=======================" << endl;
+        // cout << "skipped " << node->depth << " " << node->path << endl;
+        // cout << CHECK_BIT(node->path,literals[node->parent->depth-1].second-1) << endl;
+        // cout << literals[node->parent->depth-1].second << endl;
+        // for(int i = 0; i < node->remained_claused.size(); i++){
+        //     for(int j = 0; j < c[node->remained_claused[i]].vars_len; j++)
+        //         cout << c[node->remained_claused[i]].vars[j] << " ";
+        //     cout << endl;
+        // }
+        return true;
+    }
+
+    for(int k = 0; k < node->parent->remained_claused.size(); k++){
+        int i = node->parent->remained_claused[k];
         clause_status = -1;
         for(int j =0 ; j < c[i].vars_len; j++){      
             int var_index = abs(c[i].vars[j]) -1 ; 
@@ -97,23 +138,26 @@ bool branch_and_bound(Node* node){
         if(clause_status == -1){
             clause_status = 0;
         }
-        
+        if(clause_status == 2){
+            node->remained_claused.push_back(i);
+        }
         if(clause_status == 0){
             num_of_zero++;
         }
 
         // if(clause_status == 0){
-        //     cout << "Clouse " << i+2 << " is false" << endl;
+        //     cout << "Clause " << i+2 << " is false" << endl;
         // }
         // else if(clause_status == 1){
-        //     cout << "Clouse " << i+2 << " is true" << endl;
+        //     cout << "Clause " << i+2 << " is true" << endl;
         // }
         // else if(clause_status == 2){
-        //     cout << "Clouse " << i+2 << " is DONT know" << endl;
+        //     cout << "Clause " << i+2 << " is DONT know" << endl;
         // }
 
     }
-   
+    // cout << num_of_zero << endl;
+    node->number_of_zero = num_of_zero;
     if(num_of_zero >= best_sol){//should be pruned
         // cout << "************************************" << endl;
         // cout << "pruned" << endl;
@@ -125,7 +169,7 @@ bool branch_and_bound(Node* node){
     }
     if(num_of_zero <= best_sol && node->depth > num_of_variables){//only leaf node should change the best solution
         best_sol = num_of_zero;
-        best_leaf = new Node(node->depth,node->path);
+        best_leaf = new Node(node->depth,node->path,NULL);
     }
     return false;
 }
@@ -137,11 +181,11 @@ void build_tree(Node* root){
     unsigned long long int mover = 1;
     unsigned long long int path = root->path | mover << (literals[root->depth-1].second-1);
     
-    root->right = new Node(root->depth+1,path);
+    root->right = new Node(root->depth+1,path,root);
     //check whether we should build right subtree
     root->right->pruned = branch_and_bound(root->right);
     num_of_traversed_node++;
-    root->left = new Node(root->depth+1,root->path);
+    root->left = new Node(root->depth+1,root->path,root);
     //check whether we should build left subtree
     root->left->pruned = branch_and_bound(root->left);
     num_of_traversed_node++;
@@ -212,7 +256,8 @@ void best_sol_init(){
         }
     }
     best_sol = zero_clauses_num;
-    best_leaf = new Node(num_of_variables+1,best_init);
+    best_leaf = new Node(num_of_variables+1,best_init,NULL);
+    delete[] locked; 
 }
 
 void init(){
@@ -228,7 +273,10 @@ void init(){
         repeat_count[i] = 0;
         not_repeat_count[i] = 0;
     }
-    root = new Node(1,0);
+    root = new Node(1,0,NULL);
+    for(int i = 0; i < num_of_clauses; i++){
+        root->remained_claused.push_back(i);
+    }
     
 }
 
@@ -240,6 +288,9 @@ void preprocess(){
         literals.push_back(temp);
     }
     sort(literals.rbegin(),literals.rend());
+    // for(int i = 0; i < num_of_variables; i++){
+    //     cout << literals[i].second << " " << literals[i].first << endl;
+    // }
 }
 
 int main(){
