@@ -47,7 +47,6 @@ int best_sol = 0;
 int num_of_traversed_node = 1;
 int* repeat_count;
 int* not_repeat_count;
-bool* node_visited;
 vector<pair<int,int>> literals;
 Node* best_leaf;
 Clause* c;
@@ -63,62 +62,6 @@ void print_binary_tree(Node* root, string previous_log){
     }
 }
 
-bool branch_and_bound_optimization(Node* node){
-    int clause_status = -1; // 0 is false, 1 is true, 2 is dont know yet
-    int num_of_zero = 0;
-    cout << "====================================" << endl;
-    cout << node->depth << " " << node->path << endl;
-    for(int i = 0; i < num_of_clauses; i++){
-        clause_status = -1;
-        for(int j = 0; j < c[i].vars_len; j++){
-            if(abs(c[i].vars[j]) >= node->depth){
-                clause_status = 2;
-                continue;
-            }
-            if(c[i].vars[j] > 0 && CHECK_BIT(node->path,abs(c[i].vars[j])-1)){
-                clause_status = 1;
-                break;
-            }
-            if(c[i].vars[j] < 0 && !CHECK_BIT(node->path,abs(c[i].vars[j])-1)){
-                clause_status = 1;
-                break;
-            }
-        }
-        if(clause_status == -1){
-            clause_status = 0;
-        }
-        if(clause_status == 0){
-            num_of_zero++;
-        }
-
-        if(clause_status == 0){
-            cout << "Clouse " << i+1 << " is false" << endl;
-        }
-        else if(clause_status == 1){
-            cout << "Clouse " << i+1 << " is true" << endl;
-        }
-        else if(clause_status == 2){
-            cout << "Clouse " << i+1 << " is DONT know" << endl;
-        }
-    }
-    cout << num_of_zero << endl;
-    // cout << best_sol << endl;
-    if(num_of_zero >= best_sol){//should be pruned
-        cout << "pruned" << endl;
-        cout << node->depth << " " << node->path << endl;
-        node->pruned = true;
-        return true;
-    }
-    if(num_of_zero <= best_sol && node->depth > num_of_variables){//only leaf node should change the best solution
-        best_sol = num_of_zero;
-        best_leaf = new Node(node->depth,node->path);
-        // cout << "updated" << endl;
-        // cout << num_of_zero << " " << best_sol << endl;
-        // cout << node->depth << " " << node->path << endl;
-    }
-    return false;
-}
-
 bool variable_visited(int var, int size){
     for(int i = 0; i < size; i++){
         if(literals[i].second == var)
@@ -127,7 +70,7 @@ bool variable_visited(int var, int size){
     return false;
 
 }
-bool branch_and_bound_2(Node* node){
+bool branch_and_bound(Node* node){
     int clause_status = -1;
     int num_of_zero = 0;
     // cout << "==========================================" << endl;
@@ -196,11 +139,11 @@ void build_tree(Node* root){
     
     root->right = new Node(root->depth+1,path);
     //check whether we should build right subtree
-    root->right->pruned = branch_and_bound_2(root->right);
+    root->right->pruned = branch_and_bound(root->right);
     num_of_traversed_node++;
     root->left = new Node(root->depth+1,root->path);
     //check whether we should build left subtree
-    root->left->pruned = branch_and_bound_2(root->left);
+    root->left->pruned = branch_and_bound(root->left);
     num_of_traversed_node++;
     
     if(repeat_count[literals[root->depth-1].second-1] > not_repeat_count[literals[root->depth-1].second-1]){
@@ -221,8 +164,6 @@ void build_tree(Node* root){
     }
     return;
 }
-
-
 
 
 void best_sol_init(){
@@ -283,11 +224,9 @@ void init(){
     }
     repeat_count = new int[num_of_variables];
     not_repeat_count = new int [num_of_variables];
-    node_visited = new bool[num_of_variables];
     for(int i = 0; i < num_of_variables; i++){
         repeat_count[i] = 0;
         not_repeat_count[i] = 0;
-        node_visited[i] = false;
     }
     root = new Node(1,0);
     
@@ -301,9 +240,6 @@ void preprocess(){
         literals.push_back(temp);
     }
     sort(literals.rbegin(),literals.rend());
-    // for(int i = 0; i < num_of_variables; i++){
-    //     cout << literals[i].first << " " << literals[i].second << endl;
-    // }
 }
 
 int main(){
