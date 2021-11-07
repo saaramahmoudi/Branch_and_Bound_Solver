@@ -52,6 +52,7 @@ int best_sol = 0;
 int num_of_traversed_node = 1;
 int* repeat_count;
 int* not_repeat_count;
+bool* comp_visitd;
 vector<pair<int,int>> literals;
 Node* best_leaf;
 Clause* c;
@@ -87,14 +88,102 @@ bool pure_literal(vector<int> remained_claused, int var){
     return true;
 }
 
+int count_var_visited(Clause clause, int curr_depth){
+    int counter = 0;
+    for(int i = 0; i < clause.vars_len; i++){
+        if(variable_visited(abs(clause.vars[i]),curr_depth))
+            counter++;
+    }
+    return counter;
+}
+
+bool find_index(Clause clause, int var, int curr_depth){
+    for(int i = 0 ; i < clause.vars_len; i++){
+        int var_val = clause.vars[i];
+        if(variable_visited(abs(var_val),curr_depth))
+            continue;
+        if(var_val == var){
+            // cout << "search function " << endl;
+            // cout << var_val << " at index " << clause.vars[i] << endl;
+            return true;
+        }
+    }
+    return false;
+}
+
+int count_compliment_clause(vector<int> remained_clause, int curr_depth){
+    int num_of_comp = 0;
+    bool* comp_visitd = new bool [num_of_clauses];
+    for(int i = 0; i < num_of_clauses; i++)
+        comp_visitd[i] = false;
+    for(int i = 0; i < remained_clause.size(); i++){
+        for(int j = 0; j < remained_clause.size(); j++){
+            if(i == j){
+                continue;
+            }
+            if(i > j)
+                continue;
+            int c_index_1 = remained_clause[i];
+            int c_index_2 = remained_clause[j];
+            if(comp_visitd[c_index_1] || comp_visitd[c_index_2])
+                continue;
+            // cout << "****" << endl;
+            // cout << c_index_1 << " " << c_index_2 << endl;
+            // cout << "****" << endl;
+            int c1 = count_var_visited(c[c_index_1],curr_depth+1);
+            int c2 = count_var_visited(c[c_index_2],curr_depth+1);
+            if(c[c_index_1].vars_len - c1 != c[c_index_2].vars_len - c2){//different size, can not be compliment
+                continue;
+            }
+            if(c[c_index_1].vars_len - c1 > 1)
+                continue;
+            //same size might be compliment
+            bool comp = true;
+            // cout << "================INJA=====================" << endl;
+            // cout << "depth " << curr_depth << endl;
+            for(int k = 0; k < c[c_index_1].vars_len; k++){
+                int var = c[c_index_1].vars[k];
+                if(variable_visited(abs(var),curr_depth+1)){
+                    continue;
+                }
+                else{
+                    // cout << "search variable" << -1*var << endl;
+                    comp = find_index(c[c_index_2],-1*var,curr_depth+1);
+                    if(!comp){
+                        break;
+                    }
+                }
+            }
+            //debug purpose
+            if(comp){
+                // cout << c_index_1+2 << " " << c_index_2+2 << endl;
+                // for(int k = 0;  k < c[c_index_1].vars_len; k++)
+                //     cout << c[c_index_1].vars[k] << " ";
+                // cout << endl;
+                // for(int k = 0;  k < c[c_index_2].vars_len; k++)
+                //     cout << c[c_index_2].vars[k] << " ";
+                // cout << endl;
+                // cout << "end of compliment clauses!!" << endl;
+                comp_visitd[c_index_1] = true;
+                comp_visitd[c_index_2] = true;
+                num_of_comp++;
+                // cout << "comp!!" << endl;
+            }
+        }
+    }
+    // cout << "num_of_comp : " << num_of_comp << endl;
+    return num_of_comp;
+}
+
 bool branch_and_bound(Node* node){
     int clause_status = -1;
     int num_of_zero = node->parent->number_of_zero;
-    // cout << "============================" << endl;
-    // cout << node->depth << " " << node->path << endl;\
+    // cout << "=============================================" << endl;
+    // cout << node->depth << " " << node->path << endl;
     // cout << node->parent->depth << " " << node->parent->path << endl;
-    bool should_skip = false;
 
+    /***********************************************PURE LITERAL******************************************************/
+    bool should_skip = false;
     if(CHECK_BIT(node->path,literals[node->parent->depth-1].second-1)){
         should_skip = pure_literal(node->parent->remained_claused,literals[node->parent->depth-1].second);
     }
@@ -104,18 +193,9 @@ bool branch_and_bound(Node* node){
     if(should_skip){
         node->remained_claused = node->parent->remained_claused;
         node->number_of_zero = node->parent->number_of_zero;
-        // cout << "=======================" << endl;
-        // cout << "skipped " << node->depth << " " << node->path << endl;
-        // cout << CHECK_BIT(node->path,literals[node->parent->depth-1].second-1) << endl;
-        // cout << literals[node->parent->depth-1].second << endl;
-        // for(int i = 0; i < node->remained_claused.size(); i++){
-        //     for(int j = 0; j < c[node->remained_claused[i]].vars_len; j++)
-        //         cout << c[node->remained_claused[i]].vars[j] << " ";
-        //     cout << endl;
-        // }
         return true;
     }
-
+    /***********************************************COUNT FALSE CLAUSE*************************************************/
     for(int k = 0; k < node->parent->remained_claused.size(); k++){
         int i = node->parent->remained_claused[k];
         clause_status = -1;
@@ -156,13 +236,18 @@ bool branch_and_bound(Node* node){
         // }
 
     }
-    // cout << num_of_zero << endl;
+    /***********************************************SEARCH COMPLIMENT**************************************************/
+    int num_of_compliment = count_compliment_clause(node->remained_claused,node->parent->depth-1);
+    
+
+    /***********************************************PRUNE CHECK ******************************************************/
     node->number_of_zero = num_of_zero;
-    if(num_of_zero >= best_sol){//should be pruned
+    if(num_of_zero + num_of_compliment >= best_sol){//should be pruned
         // cout << "************************************" << endl;
         // cout << "pruned" << endl;
         // cout << node->depth << " " << node->path << endl;
-        // cout << num_of_zero << endl;
+        // cout << num_of_compliment << endl;
+        // cout << num_of_zero - num_of_compliment << endl;
         // cout << "************************************" << endl;
         node->pruned = true;
         return true;
@@ -277,6 +362,7 @@ void init(){
     for(int i = 0; i < num_of_clauses; i++){
         root->remained_claused.push_back(i);
     }
+    comp_visitd = new bool [num_of_clauses];
     
 }
 
@@ -291,6 +377,7 @@ void preprocess(){
     // for(int i = 0; i < num_of_variables; i++){
     //     cout << literals[i].second << " " << literals[i].first << endl;
     // }
+    // cout << "Preproccessed done" << endl;
 }
 
 int main(){
