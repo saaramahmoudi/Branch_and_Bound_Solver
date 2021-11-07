@@ -33,6 +33,7 @@ struct Node{
     bool pruned;
     vector<int> remained_claused;
     int number_of_zero; 
+    double cost;
     Node* parent;
 
     Node(int dep, unsigned long long int p, Node* par){
@@ -43,12 +44,13 @@ struct Node{
         path = p;
         parent = par;
         number_of_zero = 0;
+        cost = 0;
     } 
 };
 
 int num_of_variables = 0;
 int num_of_clauses = 0;
-int best_sol = 0;
+double best_sol = 0;
 int num_of_traversed_node = 1;
 int* repeat_count;
 int* not_repeat_count;
@@ -111,8 +113,9 @@ bool find_index(Clause clause, int var, int curr_depth){
     return false;
 }
 
-int count_compliment_clause(vector<int> remained_clause, int curr_depth){
+double count_compliment_clause(vector<int> remained_clause, int curr_depth){
     int num_of_comp = 0;
+    double cost_of_comp = 0;
     bool* comp_visitd = new bool [num_of_clauses];
     for(int i = 0; i < num_of_clauses; i++)
         comp_visitd[i] = false;
@@ -167,17 +170,20 @@ int count_compliment_clause(vector<int> remained_clause, int curr_depth){
                 comp_visitd[c_index_1] = true;
                 comp_visitd[c_index_2] = true;
                 num_of_comp++;
+                double min_cost = c[c_index_1].weight > c[c_index_2].weight ? c[c_index_2].weight : c[c_index_1].weight; 
+                cost_of_comp += min_cost;
                 // cout << "comp!!" << endl;
             }
         }
     }
     // cout << "num_of_comp : " << num_of_comp << endl;
-    return num_of_comp;
+    return cost_of_comp;
 }
 
 bool branch_and_bound(Node* node){
     int clause_status = -1;
     int num_of_zero = node->parent->number_of_zero;
+    double cost_so_far = node->parent->cost;
     // cout << "=============================================" << endl;
     // cout << node->depth << " " << node->path << endl;
     // cout << node->parent->depth << " " << node->parent->path << endl;
@@ -193,6 +199,7 @@ bool branch_and_bound(Node* node){
     if(should_skip){
         node->remained_claused = node->parent->remained_claused;
         node->number_of_zero = node->parent->number_of_zero;
+        node->cost = node->parent->cost;
         return true;
     }
     /***********************************************COUNT FALSE CLAUSE*************************************************/
@@ -223,6 +230,7 @@ bool branch_and_bound(Node* node){
         }
         if(clause_status == 0){
             num_of_zero++;
+            cost_so_far += c[i].weight; 
         }
 
         // if(clause_status == 0){
@@ -237,12 +245,13 @@ bool branch_and_bound(Node* node){
 
     }
     /***********************************************SEARCH COMPLIMENT**************************************************/
-    int num_of_compliment = count_compliment_clause(node->remained_claused,node->parent->depth-1);
+    double num_of_compliment = count_compliment_clause(node->remained_claused,node->parent->depth-1);
     
-
     /***********************************************PRUNE CHECK ******************************************************/
     node->number_of_zero = num_of_zero;
-    if(num_of_zero + num_of_compliment >= best_sol){//should be pruned
+    node->cost = cost_so_far;
+
+    if(cost_so_far + num_of_compliment >= best_sol){//should be pruned
         // cout << "************************************" << endl;
         // cout << "pruned" << endl;
         // cout << node->depth << " " << node->path << endl;
@@ -252,8 +261,8 @@ bool branch_and_bound(Node* node){
         node->pruned = true;
         return true;
     }
-    if(num_of_zero <= best_sol && node->depth > num_of_variables){//only leaf node should change the best solution
-        best_sol = num_of_zero;
+    if(cost_so_far <= best_sol && node->depth > num_of_variables){//only leaf node should change the best solution
+        best_sol = cost_so_far;
         best_leaf = new Node(node->depth,node->path,NULL);
     }
     return false;
@@ -298,6 +307,7 @@ void build_tree(Node* root){
 void best_sol_init(){
     unsigned long long int best_init = 0; //initilazed all to false
     bool* locked = new bool[num_of_variables];
+    double cost = 0; 
     for(int i = 0; i < num_of_variables; i++)
         locked[i] = false;
     int zero_clauses_num = 0;
@@ -337,10 +347,11 @@ void best_sol_init(){
             }
         }
         if(is_zero){
+            cost += c[i].weight;
             zero_clauses_num++;
         }
     }
-    best_sol = zero_clauses_num;
+    best_sol = cost;
     best_leaf = new Node(num_of_variables+1,best_init,NULL);
     delete[] locked; 
 }
@@ -362,9 +373,17 @@ void init(){
     for(int i = 0; i < num_of_clauses; i++){
         root->remained_claused.push_back(i);
     }
-    comp_visitd = new bool [num_of_clauses];
+    comp_visitd = new bool[num_of_clauses];
     
 }
+
+bool compare(Clause c1, Clause c2){
+	if(c1.weight < c2.weight)
+		return 1;
+	else 
+		return 0;
+}
+
 
 void preprocess(){
     for(int i = 0; i < num_of_variables; i++){
@@ -374,7 +393,8 @@ void preprocess(){
         literals.push_back(temp);
     }
     sort(literals.rbegin(),literals.rend());
-    
+    //sort clauses based on their weight 
+    sort(c,c+num_of_clauses, compare);
 }
 
 int main(){
@@ -415,7 +435,7 @@ int main(){
     cout << best_sol << endl;
     build_tree(root);
     // print_binary_tree(root ,"");
-    cout << endl;
+    // cout << endl;
     cout << num_of_traversed_node << endl;
     cout << best_sol << endl;
     // cout << best_leaf->path << endl;
