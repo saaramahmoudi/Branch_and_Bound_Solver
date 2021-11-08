@@ -48,13 +48,16 @@ struct Node{
 
 int num_of_variables = 0;
 int num_of_clauses = 0;
-int best_sol = 0;
+int best_sol = INT_MAX;
+int best_shuffle_sol = 0;
 int num_of_traversed_node = 1;
 int* repeat_count;
 int* not_repeat_count;
 bool* comp_visitd;
+bool* locked;
 vector<pair<int,int>> literals;
 Node* best_leaf;
+Node* best_shuffle_leaf;
 Clause* c;
 Node* root;
 
@@ -297,7 +300,6 @@ void build_tree(Node* root){
 
 void best_sol_init(){
     unsigned long long int best_init = 0; //initilazed all to false
-    bool* locked = new bool[num_of_variables];
     for(int i = 0; i < num_of_variables; i++)
         locked[i] = false;
     int zero_clauses_num = 0;
@@ -340,10 +342,22 @@ void best_sol_init(){
             zero_clauses_num++;
         }
     }
-    best_sol = zero_clauses_num;
-    best_leaf = new Node(num_of_variables+1,best_init,NULL);
-    delete[] locked; 
+    best_shuffle_sol = zero_clauses_num;
+    best_shuffle_leaf = new Node(num_of_variables+1,best_init,NULL);
 }
+
+void clause_shuffle(){
+    unsigned seed = 0;
+    for(int i = 0; i < 20; i++){
+        shuffle(c,c+num_of_clauses,default_random_engine(seed));
+        best_sol_init();
+        if(best_sol > best_shuffle_sol){
+            best_sol = best_shuffle_sol;
+            best_leaf = best_shuffle_leaf;
+        }
+    }
+}
+
 
 void init(){
     c = new Clause[num_of_clauses];
@@ -363,6 +377,7 @@ void init(){
         root->remained_claused.push_back(i);
     }
     comp_visitd = new bool [num_of_clauses];
+    locked = new bool[num_of_variables];
     
 }
 
@@ -413,8 +428,8 @@ int main(){
     }
 
     preprocess();
-    
-    best_sol_init();
+    clause_shuffle();
+    // best_sol_init();
     cout << best_sol << endl;
     build_tree(root);
     // print_binary_tree(root ,"");
