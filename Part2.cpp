@@ -50,13 +50,15 @@ struct Node{
 
 int num_of_variables = 0;
 int num_of_clauses = 0;
-double best_sol = 0;
+double best_sol = DBL_MAX;
+double best_sol_shuffle = 0;
 int num_of_traversed_node = 1;
 int* repeat_count;
 int* not_repeat_count;
 bool* comp_visitd;
 vector<pair<int,int>> literals;
 Node* best_leaf;
+Node* best_leaf_shuffle;
 Clause* c;
 Node* root;
 
@@ -303,6 +305,45 @@ void build_tree(Node* root){
     return;
 }
 
+int find_variable_in_literal(int variable){
+    for(int i = 0; i < num_of_variables; i++){
+        if(literals[i].second == variable)
+            return i;
+    }
+    return -1;
+}
+
+void sort_clause_all(int index){
+    for(int i = 0; i < c[index].vars_len - 1; i++){
+        for(int j = i+1; j < c[index].vars_len; j++){
+            // int ind1 = c[index].vars[i] > 0 ? repeat_count[c[index].vars[i]] : not_repeat_count[-1*c[index].vars[i]];
+            // int ind2 = c[index].vars[j] > 0 ? repeat_count[c[index].vars[j]] : not_repeat_count[-1*c[index].vars[j]];
+            int ind1 = find_variable_in_literal(abs(c[index].vars[i]));
+            int ind2 = find_variable_in_literal(abs(c[index].vars[j]));
+            if(ind1 >= ind2 ){
+                int temp = c[index].vars[i];
+                c[index].vars[i] = c[index].vars[j];
+                c[index].vars[j] = temp;
+            }
+        }
+    }
+}
+
+void sort_clause_freq(int index){
+    for(int i = 0; i < c[index].vars_len - 1; i++){
+        for(int j = i+1; j < c[index].vars_len; j++){
+            int ind1 = c[index].vars[i] > 0 ? repeat_count[c[index].vars[i]] : not_repeat_count[-1*c[index].vars[i]];
+            int ind2 = c[index].vars[j] > 0 ? repeat_count[c[index].vars[j]] : not_repeat_count[-1*c[index].vars[j]];
+            // int ind1 = find_variable_in_literal(abs(c[index].vars[i]));
+            // int ind2 = find_variable_in_literal(abs(c[index].vars[j]));
+            if(ind1 >= ind2 ){
+                int temp = c[index].vars[i];
+                c[index].vars[i] = c[index].vars[j];
+                c[index].vars[j] = temp;
+            }
+        }
+    }
+}
 
 void best_sol_init(){
     unsigned long long int best_init = 0; //initilazed all to false
@@ -313,7 +354,7 @@ void best_sol_init(){
     int zero_clauses_num = 0;
     for(int i = 0; i < num_of_clauses; i++){
         bool is_zero = true;
-        for(int j = 0; j < c[i].vars_len; j++){
+        for(int j = 0; j < c[i].vars_len; j++){ 
             int var = abs(c[i].vars[j]);
             if(locked[var-1]){//if variable has been selected already
                 if(c[i].vars[j] > 0 && CHECK_BIT(best_init,var-1)){
@@ -336,12 +377,14 @@ void best_sol_init(){
                     unsigned long long int mover = 1;       
                     best_init |= mover << (var-1);
                     locked[var-1] = true;
+                    // cout << c[i].vars[j] << " set to true" << endl;
                     is_zero = false;
                     break;
                 }
                 else{
                     locked[var-1] = true;
                     is_zero = false;
+                    // cout << -1*c[i].vars[j] << " set to false" << endl;
                     break;
                 }
             }
@@ -351,8 +394,9 @@ void best_sol_init(){
             zero_clauses_num++;
         }
     }
-    best_sol = cost;
-    best_leaf = new Node(num_of_variables+1,best_init,NULL);
+    // cout << zero_clauses_num << endl;
+    best_sol_shuffle = cost;
+    best_leaf_shuffle = new Node(num_of_variables+1,best_init,NULL);
     delete[] locked; 
 }
 
@@ -374,16 +418,7 @@ void init(){
         root->remained_claused.push_back(i);
     }
     comp_visitd = new bool[num_of_clauses];
-    
 }
-
-bool compare(Clause c1, Clause c2){
-	if(c1.weight < c2.weight)
-		return 1;
-	else 
-		return 0;
-}
-
 
 void preprocess(){
     for(int i = 0; i < num_of_variables; i++){
@@ -393,8 +428,53 @@ void preprocess(){
         literals.push_back(temp);
     }
     sort(literals.rbegin(),literals.rend());
-    //sort clauses based on their weight 
-    sort(c,c+num_of_clauses, compare);
+    // for(int i = 0; i < num_of_variables; i++){
+    //     cout << literals[i].second << " " << literals[i].first << endl;
+    // }
+    // cout << "END OF LITERALS" << endl;
+    // sort clauses based on their weight 
+    // sort(c,c+num_of_clauses,compare);
+    Clause* c_sort = new Clause[num_of_clauses];
+    bool* clause_visited = new bool[num_of_clauses];
+    int index = 0;
+    for(int i = 0; i < num_of_clauses; i++)
+        clause_visited[i] = false;
+    for(int i = 0 ; i < num_of_clauses; i++){
+        double max_weight = DBL_MIN;
+        int max_id = -1;
+        for(int j = 0; j < num_of_clauses; j++){
+            if(clause_visited[j])
+                continue;
+            
+            if(max_weight < c[j].weight){
+                max_weight = c[j].weight;
+                max_id = j;
+                
+            }
+        }
+        clause_visited[max_id] = true;
+        c_sort[index] = c[max_id];
+        index++;
+    }
+    c = c_sort;
+    for(int i = 0; i < num_of_clauses; i++){
+        sort_clause_freq(i);
+    }
+    best_sol_init();
+    if(best_sol_shuffle < best_sol){
+        best_sol = best_sol_shuffle;
+        best_leaf = best_leaf_shuffle;
+    }
+    for(int i = 0; i < num_of_clauses; i++){
+        sort_clause_all(i);
+    }
+    best_sol_init();
+    if(best_sol_shuffle < best_sol){
+        best_sol = best_sol_shuffle;
+        best_leaf = best_leaf_shuffle;
+    }
+    // cout << best_sol << endl;
+    delete[] clause_visited;
 }
 
 int main(){
@@ -430,8 +510,6 @@ int main(){
     }
 
     preprocess();
-    
-    best_sol_init();
     cout << best_sol << endl;
     build_tree(root);
     // print_binary_tree(root ,"");
@@ -448,5 +526,6 @@ int main(){
             cout << "x" << i+1 << " " << "true" << endl;
         }
     }
+
     return 0;
 }
