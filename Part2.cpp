@@ -115,6 +115,15 @@ bool find_index(Clause clause, int var, int curr_depth){
     return false;
 }
 
+double get_max_weight(){
+    double max_clause = 0;
+    for(int i = 0; i < num_of_clauses; i++){
+        max_clause += c[i].weight;
+    }
+    max_clause -= best_sol;
+    return max_clause;
+}
+
 double count_compliment_clause(vector<int> remained_clause, int curr_depth){
     int num_of_comp = 0;
     double cost_of_comp = 0;
@@ -248,7 +257,7 @@ bool branch_and_bound(Node* node){
     }
     /***********************************************SEARCH COMPLIMENT**************************************************/
     double num_of_compliment = count_compliment_clause(node->remained_claused,node->parent->depth-1);
-    
+    // double num_of_compliment = 0;
     /***********************************************PRUNE CHECK ******************************************************/
     node->number_of_zero = num_of_zero;
     node->cost = cost_so_far;
@@ -510,13 +519,14 @@ int main(){
     }
 
     preprocess();
-    cout << best_sol << endl;
+    cout << "SUM of false Clauses " << best_sol << endl;
+    cout << "Initial Max Statisfied Weight " << get_max_weight() << endl;
     build_tree(root);
     // print_binary_tree(root ,"");
     // cout << endl;
-    cout << num_of_traversed_node << endl;
-    cout << best_sol << endl;
-    // cout << best_leaf->path << endl;
+    cout << "Nodes: " << num_of_traversed_node << endl;
+    cout << "SUM of false Clauses " << best_sol << endl;
+    cout << "Max Statisfied Weight " << get_max_weight() << endl;
   
     for(int i = 0; i < num_of_variables; i++){
         if(!CHECK_BIT(best_leaf->path,i)){

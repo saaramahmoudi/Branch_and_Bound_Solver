@@ -358,7 +358,6 @@ void clause_shuffle(){
     }
 }
 
-
 void init(){
     c = new Clause[num_of_clauses];
     for(int i = 0; i < num_of_clauses; i++){
@@ -429,14 +428,15 @@ int main(){
 
     preprocess();
     clause_shuffle();
-    // best_sol_init();
-    cout << best_sol << endl;
+    
+    cout << "Initial Number of false Clauses " << best_sol << endl;
+    cout << "Initial Max Statisfied clauses " << num_of_clauses - best_sol << endl;
     build_tree(root);
     // print_binary_tree(root ,"");
-    cout << endl;
-    cout << num_of_traversed_node << endl;
-    cout << best_sol << endl;
-    // cout << best_leaf->path << endl;
+    // cout << endl;
+    cout << "Nodes: " << num_of_traversed_node << endl;
+    cout << "Number of false Clauses " << best_sol << endl;
+    cout << "Max Statisfied Clauses " << num_of_clauses - best_sol << endl;
   
     for(int i = 0; i < num_of_variables; i++){
         if(!CHECK_BIT(best_leaf->path,i)){
