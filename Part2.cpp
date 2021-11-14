@@ -31,6 +31,7 @@ struct Node{
     Node* right; //True
     Node* left;  //False
     bool pruned;
+    long long graphic_index;
     vector<int> remained_claused;
     int number_of_zero; 
     double cost;
@@ -48,6 +49,11 @@ struct Node{
     } 
 };
 
+void drawscreen (void);
+void act_on_button_press (float x, float y);
+void delay();
+void draw_nodes();
+
 int num_of_variables = 0;
 int num_of_clauses = 0;
 double best_sol = DBL_MAX;
@@ -56,6 +62,7 @@ int num_of_traversed_node = 1;
 int* repeat_count;
 int* not_repeat_count;
 bool* comp_visitd;
+queue<Node*> graphical_node;
 vector<pair<int,int>> literals;
 Node* best_leaf;
 Node* best_leaf_shuffle;
@@ -279,23 +286,33 @@ bool branch_and_bound(Node* node){
     return false;
 }
 
+
 void build_tree(Node* root){
-    if(root->depth == num_of_variables+1)
+    if(root->depth == num_of_variables+1){
         return;
+    }
     
     unsigned long long int mover = 1;
     unsigned long long int path = root->path | mover << (literals[root->depth-1].second-1);
     
+    
     root->right = new Node(root->depth+1,path,root);
+    root->right->graphic_index = 2*root->graphic_index+1; 
     //check whether we should build right subtree
     root->right->pruned = branch_and_bound(root->right);
+    
     num_of_traversed_node++;
+    
     root->left = new Node(root->depth+1,root->path,root);
+    root->left->graphic_index = 2*root->graphic_index;
+    
     //check whether we should build left subtree
     root->left->pruned = branch_and_bound(root->left);
     num_of_traversed_node++;
     
     if(repeat_count[literals[root->depth-1].second-1] > not_repeat_count[literals[root->depth-1].second-1]){
+        graphical_node.push(root->right);
+        graphical_node.push(root->left);
         if(!root->right->pruned){ //if not pruned continue building
             build_tree(root->right);
         }
@@ -304,6 +321,8 @@ void build_tree(Node* root){
         }
     }
     else{
+        graphical_node.push(root->left);
+        graphical_node.push(root->right);
         if(!root->left->pruned){
             build_tree(root->left);
         }
@@ -313,6 +332,7 @@ void build_tree(Node* root){
     }
     return;
 }
+
 
 int find_variable_in_literal(int variable){
     for(int i = 0; i < num_of_variables; i++){
@@ -423,6 +443,8 @@ void init(){
         not_repeat_count[i] = 0;
     }
     root = new Node(1,0,NULL);
+    root->graphic_index = 0;
+    graphical_node.push(root);
     for(int i = 0; i < num_of_clauses; i++){
         root->remained_claused.push_back(i);
     }
@@ -496,6 +518,8 @@ int main(){
     testFile >> num_of_clauses;
 
     init();
+    
+    
 
     int read_line = 0;
     while(read_line < num_of_clauses){
@@ -521,21 +545,104 @@ int main(){
     preprocess();
     cout << "SUM of false Clauses " << best_sol << endl;
     cout << "Initial Max Statisfied Weight " << get_max_weight() << endl;
+    
     build_tree(root);
+    
     // print_binary_tree(root ,"");
     // cout << endl;
-    cout << "Nodes: " << num_of_traversed_node << endl;
-    cout << "SUM of false Clauses " << best_sol << endl;
-    cout << "Max Statisfied Weight " << get_max_weight() << endl;
+    // cout << "Nodes: " << num_of_traversed_node << endl;
+    // cout << "SUM of false Clauses " << best_sol << endl;
+    // cout << "Max Statisfied Weight " << get_max_weight() << endl;
   
-    for(int i = 0; i < num_of_variables; i++){
-        if(!CHECK_BIT(best_leaf->path,i)){
-            cout << "x" << i+1 << " " << "false" << endl;
+    // for(int i = 0; i < num_of_variables; i++){
+    //     if(!CHECK_BIT(best_leaf->path,i)){
+    //         cout << "x" << i+1 << " " << "false" << endl;
+    //     }
+    //     else{
+    //         cout << "x" << i+1 << " " << "true" << endl;
+    //     }
+    // }
+    init_graphics("Assignment 3 - Part2", WHITE);
+    init_world (0.,0.,5000.,5000.);
+    update_message("Fatemehsadat(Sara) Mahmoudi - Branch and Bound");
+    event_loop(act_on_button_press, NULL, NULL, drawscreen); 
+    // cout << graphical_node.size() << endl;
+    draw_nodes();
+    event_loop(act_on_button_press, NULL, NULL, drawscreen); 
+    return 0;
+}
+
+
+void drawscreen (void) {
+    set_draw_mode (DRAW_NORMAL);
+    clearscreen(); 
+    setfontsize (10);
+    setlinestyle (SOLID);
+    setlinewidth (2);
+    setcolor (BLACK);
+
+    // draw_nodes();
+    
+}
+
+void act_on_button_press (float x, float y) {
+    printf("User nets_clicked a button at coordinates (%f, %f)\n", x, y);
+}
+
+
+void delay(){
+    for (int i = 0; i < 10000; i++){
+        for(int j = 0; j < 5000; j++);
+    }
+}
+
+
+
+void draw_nodes(){
+    double v_dist = (double) 5000./ (pow(2,num_of_variables)-1);
+    double root_y_pos = (double) 5000 / (num_of_variables+1);
+    
+    while(!graphical_node.empty()){
+        
+        Node* n = graphical_node.front();
+        graphical_node.pop();
+        
+
+        if(!n->pruned){
+            setcolor(BLUE);
         }
         else{
-            cout << "x" << i+1 << " " << "true" << endl;
+            setcolor(RED);
         }
-    }
 
-    return 0;
+        if(n->depth <= num_of_variables){
+            long long x_pos = pow(2,num_of_variables+1-(n->depth));
+            // cout << "===========================================" << endl;
+            // cout << n->depth << " " << n->graphic_index << endl;
+            // cout << x_pos << endl;
+            // cout << (n->graphic_index*x_pos+x_pos/2-0.5)*v_dist << " " << endl;
+            fillarc((n->graphic_index*x_pos+x_pos/2-0.5)*v_dist,root_y_pos * (n->depth-0.5),20,0,360);
+            if (n->depth == 1){
+                flushinput();
+                delay();
+                continue;
+            }
+            //draw the line to its parent
+            setcolor(BLACK);
+            long long par_x_pos = pow(2,num_of_variables+1-(n->parent->depth));
+            double par_pos = (n->parent->graphic_index*par_x_pos+par_x_pos/2-0.5)*v_dist;
+            drawline(par_pos,root_y_pos * (n->parent->depth-0.5),(n->graphic_index*x_pos+x_pos/2-0.5)*v_dist,root_y_pos * (n->depth-0.5));
+        }
+        else{
+            //leaf nodes
+            fillarc(n->graphic_index*v_dist,root_y_pos * (n->depth-0.5),20,0,360);
+            setcolor(BLACK);
+            long long par_x_pos = pow(2,num_of_variables+1-(n->parent->depth));
+            double par_pos = (n->parent->graphic_index*par_x_pos+par_x_pos/2-0.5)*v_dist;
+            drawline(par_pos,root_y_pos * (n->parent->depth-0.5),n->graphic_index*v_dist,root_y_pos * (n->depth-0.5));
+            
+        }
+        flushinput();
+        delay();
+    }
 }
