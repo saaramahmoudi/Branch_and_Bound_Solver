@@ -499,8 +499,6 @@ int main(){
     init_world (0.,0.,5000.,5000.);
     update_message("Fatemehsadat(Sara) Mahmoudi - Branch and Bound");
     event_loop(act_on_button_press, NULL, NULL, drawscreen); 
-    draw_nodes();
-    event_loop(act_on_button_press, NULL, NULL, drawscreen); 
     return 0;
 }
 
@@ -513,6 +511,7 @@ void drawscreen (void) {
     setlinewidth (2);
     setcolor (BLACK);
 
+    draw_nodes();
     
 }
 
@@ -527,18 +526,15 @@ void delay(){
     }
 }
 
-
-
-
 void draw_nodes(){
     double v_dist = (double) 5000./ (pow(2,num_of_variables)-1);
     double root_y_pos = (double) 5000 / (num_of_variables+1);
-    
-    while(!graphical_node.empty()){
-        
+    int size = graphical_node.size();
+    while(size > 0){
+        size--;
         Node* n = graphical_node.front();
         graphical_node.pop();
-        
+        graphical_node.push(n);
 
         if(!n->pruned){
             setcolor(BLUE);
@@ -555,8 +551,8 @@ void draw_nodes(){
             // cout << (n->graphic_index*x_pos+x_pos/2-0.5)*v_dist << " " << endl;
             fillarc((n->graphic_index*x_pos+x_pos/2-0.5)*v_dist,root_y_pos * (n->depth-0.5),20,0,360);
             if (n->depth == 1){
-                // flushinput();
-                // delay();
+                flushinput();
+                delay();
                 continue;
             }
             //draw the line to its parent
@@ -574,7 +570,7 @@ void draw_nodes(){
             drawline(par_pos,root_y_pos * (n->parent->depth-0.5),n->graphic_index*v_dist,root_y_pos * (n->depth-0.5));
             
         }
-        // flushinput();
-        // delay();
+        flushinput();
+        delay();
     }
 }
