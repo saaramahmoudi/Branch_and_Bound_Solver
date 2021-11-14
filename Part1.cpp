@@ -296,7 +296,29 @@ void build_tree(Node* root){
     }
     return;
 }
+int find_variable_in_literal(int variable){
+    for(int i = 0; i < num_of_variables; i++){
+        if(literals[i].second == variable)
+            return i;
+    }
+    return -1;
+}
 
+void sort_clause_all(int index){
+    for(int i = 0; i < c[index].vars_len - 1; i++){
+        for(int j = i+1; j < c[index].vars_len; j++){
+            // int ind1 = c[index].vars[i] > 0 ? repeat_count[c[index].vars[i]] : not_repeat_count[-1*c[index].vars[i]];
+            // int ind2 = c[index].vars[j] > 0 ? repeat_count[c[index].vars[j]] : not_repeat_count[-1*c[index].vars[j]];
+            int ind1 = find_variable_in_literal(abs(c[index].vars[i]));
+            int ind2 = find_variable_in_literal(abs(c[index].vars[j]));
+            if(ind1 >= ind2 ){
+                int temp = c[index].vars[i];
+                c[index].vars[i] = c[index].vars[j];
+                c[index].vars[j] = temp;
+            }
+        }
+    }
+}
 
 void best_sol_init(){
     unsigned long long int best_init = 0; //initilazed all to false
@@ -304,6 +326,7 @@ void best_sol_init(){
         locked[i] = false;
     int zero_clauses_num = 0;
     for(int i = 0; i < num_of_clauses; i++){
+        sort_clause_all(i);
         bool is_zero = true;
         for(int j = 0; j < c[i].vars_len; j++){
             int var = abs(c[i].vars[j]);
@@ -348,7 +371,7 @@ void best_sol_init(){
 
 void clause_shuffle(){
     unsigned seed = 0;
-    for(int i = 0; i < 20; i++){
+    for(int i = 0; i < 50; i++){
         shuffle(c,c+num_of_clauses,default_random_engine(seed));
         best_sol_init();
         if(best_sol > best_shuffle_sol){
@@ -432,8 +455,8 @@ int main(){
     cout << "Initial Number of false Clauses " << best_sol << endl;
     cout << "Initial Max Statisfied clauses " << num_of_clauses - best_sol << endl;
     build_tree(root);
-    // print_binary_tree(root ,"");
-    // cout << endl;
+    // // print_binary_tree(root ,"");
+    // // cout << endl;
     cout << "Nodes: " << num_of_traversed_node << endl;
     cout << "Number of false Clauses " << best_sol << endl;
     cout << "Max Statisfied Clauses " << num_of_clauses - best_sol << endl;
