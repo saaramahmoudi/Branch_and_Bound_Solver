@@ -5,6 +5,7 @@
 #include <queue>
 #include <limits.h>
 #include <math.h>
+#include <time.h>
 #include <bits/stdc++.h>
 #include "graphics.h"
 
@@ -188,23 +189,7 @@ int count_compliment_clause(vector<int> remained_clause, int curr_depth){
 bool branch_and_bound(Node* node){
     int clause_status = -1;
     int num_of_zero = node->parent->number_of_zero;
-    // cout << "=============================================" << endl;
-    // cout << node->depth << " " << node->path << endl;
-    // cout << node->parent->depth << " " << node->parent->path << endl;
-
-    /***********************************************PURE LITERAL******************************************************/
-    // bool should_skip = false;
-    // if(CHECK_BIT(node->path,literals[node->parent->depth-1].second-1)){
-    //     should_skip = pure_literal(node->parent->remained_claused,literals[node->parent->depth-1].second);
-    // }
-    // else{
-    //     should_skip = pure_literal(node->parent->remained_claused,-1*literals[node->parent->depth-1].second);
-    // }
-    // if(should_skip){
-    //     node->remained_claused = node->parent->remained_claused;
-    //     node->number_of_zero = node->parent->number_of_zero;
-    //     return true;
-    // }
+    
     /***********************************************COUNT FALSE CLAUSE*************************************************/
     for(int k = 0; k < node->parent->remained_claused.size(); k++){
         int i = node->parent->remained_claused[k];
@@ -248,7 +233,7 @@ bool branch_and_bound(Node* node){
     }
     /***********************************************SEARCH COMPLIMENT**************************************************/
     int num_of_compliment = count_compliment_clause(node->remained_claused,node->parent->depth-1);
-    
+    // int num_of_compliment =0;
 
     /***********************************************PRUNE CHECK ******************************************************/
     node->number_of_zero = num_of_zero;
@@ -467,6 +452,7 @@ void preprocess(){
 }
 
 int main(){
+     
     string fileName;
     cout << "Enter the name of test file (1.cnf)" << endl;
     cin >> fileName; 
@@ -509,7 +495,9 @@ int main(){
 
     cout << "Initial Number of false Clauses " << best_sol << endl;
     cout << "Initial Max Statisfied clauses " << num_of_clauses - best_sol << endl;
+    clock_t start = clock();
     build_tree(root);
+    clock_t end = clock();
     // print_binary_tree(root ,"");
     // // cout << endl;
     cout << "Nodes: " << num_of_traversed_node << endl;
@@ -524,6 +512,10 @@ int main(){
             cout << "x" << i+1 << " " << "true" << endl;
         }
     } 
+    
+    printf("Time taken: %.5fs\n", (double)(end - start)/CLOCKS_PER_SEC);
+    
+    
     init_graphics("Assignment 3 - Part1", WHITE);
     init_world (0.,0.,5000.,5000.);
     update_message("Fatemehsadat(Sara) Mahmoudi - Branch and Bound");

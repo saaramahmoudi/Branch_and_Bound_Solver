@@ -5,6 +5,7 @@
 #include <queue>
 #include <limits.h>
 #include <math.h>
+#include <time.h>
 #include <bits/stdc++.h>
 #include "graphics.h"
 
@@ -535,6 +536,7 @@ void preprocess(){
 }
 
 int main(){
+     
     string fileName;
     cout << "Enter the name of test file (1.cnf)" << endl;
     cin >> fileName; 
@@ -544,8 +546,6 @@ int main(){
     testFile >> num_of_clauses;
 
     init();
-    
-    
 
     int read_line = 0;
     while(read_line < num_of_clauses){
@@ -569,16 +569,24 @@ int main(){
     }
 
     preprocess();
-    cout << "SUM of false Clauses " << best_sol << endl;
-    cout << "Initial Max Statisfied Weight " << get_max_weight() << endl;
+    clause_shuffle();
     
+    
+    
+    //draw root
+    // fillarc(root->x_pos,root_pos_y,30,0,360);
+
+
+    cout << "Initial Number of false Clauses " << best_sol << endl;
+    cout << "Initial Max Statisfied clauses " << num_of_clauses - best_sol << endl;
+    clock_t start = clock();
     build_tree(root);
-    
+    clock_t end = clock();
     // print_binary_tree(root ,"");
-    // cout << endl;
+    // // cout << endl;
     cout << "Nodes: " << num_of_traversed_node << endl;
-    cout << "SUM of false Clauses " << best_sol << endl;
-    cout << "Max Statisfied Weight " << get_max_weight() << endl;
+    cout << "Number of false Clauses " << best_sol << endl;
+    cout << "Max Statisfied Clauses " << num_of_clauses - best_sol << endl;
   
     for(int i = 0; i < num_of_variables; i++){
         if(!CHECK_BIT(best_leaf->path,i)){
@@ -587,8 +595,12 @@ int main(){
         else{
             cout << "x" << i+1 << " " << "true" << endl;
         }
-    }
-    init_graphics("Assignment 3 - Part2", WHITE);
+    } 
+    
+    printf("Time taken: %.5fs\n", (double)(end - start)/CLOCKS_PER_SEC);
+    
+    
+    init_graphics("Assignment 3 - Part1", WHITE);
     init_world (0.,0.,5000.,5000.);
     update_message("Fatemehsadat(Sara) Mahmoudi - Branch and Bound");
     event_loop(act_on_button_press, NULL, NULL, drawscreen); 
@@ -647,7 +659,7 @@ void draw_nodes(){
             fillarc((n->graphic_index*x_pos+x_pos/2-0.5)*v_dist,root_y_pos * (n->depth-0.5),20,0,360);
             if (n->depth == 1){
                 flushinput();
-                delay();
+                // delay();
                 continue;
             }
             //draw the line to its parent
@@ -666,6 +678,6 @@ void draw_nodes(){
             
         }
         flushinput();
-        delay();
+        // delay();
     }
 }
