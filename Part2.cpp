@@ -207,19 +207,19 @@ bool branch_and_bound(Node* node){
     // cout << node->parent->depth << " " << node->parent->path << endl;
 
     /***********************************************PURE LITERAL******************************************************/
-    bool should_skip = false;
-    if(CHECK_BIT(node->path,literals[node->parent->depth-1].second-1)){
-        should_skip = pure_literal(node->parent->remained_claused,literals[node->parent->depth-1].second);
-    }
-    else{
-        should_skip = pure_literal(node->parent->remained_claused,-1*literals[node->parent->depth-1].second);
-    }
-    if(should_skip){
-        node->remained_claused = node->parent->remained_claused;
-        node->number_of_zero = node->parent->number_of_zero;
-        node->cost = node->parent->cost;
-        return true;
-    }
+    // bool should_skip = false;
+    // if(CHECK_BIT(node->path,literals[node->parent->depth-1].second-1)){
+    //     should_skip = pure_literal(node->parent->remained_claused,literals[node->parent->depth-1].second);
+    // }
+    // else{
+    //     should_skip = pure_literal(node->parent->remained_claused,-1*literals[node->parent->depth-1].second);
+    // }
+    // if(should_skip){
+    //     node->remained_claused = node->parent->remained_claused;
+    //     node->number_of_zero = node->parent->number_of_zero;
+    //     node->cost = node->parent->cost;
+    //     return true;
+    // }
     /***********************************************COUNT FALSE CLAUSE*************************************************/
     for(int k = 0; k < node->parent->remained_claused.size(); k++){
         int i = node->parent->remained_claused[k];
@@ -298,36 +298,62 @@ void build_tree(Node* root){
     
     root->right = new Node(root->depth+1,path,root);
     root->right->graphic_index = 2*root->graphic_index+1; 
-    //check whether we should build right subtree
-    root->right->pruned = branch_and_bound(root->right);
     
-    num_of_traversed_node++;
     
     root->left = new Node(root->depth+1,root->path,root);
     root->left->graphic_index = 2*root->graphic_index;
-    
-    //check whether we should build left subtree
-    root->left->pruned = branch_and_bound(root->left);
-    num_of_traversed_node++;
-    
-    if(repeat_count[literals[root->depth-1].second-1] > not_repeat_count[literals[root->depth-1].second-1]){
-        graphical_node.push(root->right);
+
+    bool should_skip_right = pure_literal(root->remained_claused,literals[root->depth-1].second);;
+    bool should_skip_left =  pure_literal(root->remained_claused,-1*literals[root->depth-1].second);
+
+    if(should_skip_right && !should_skip_left){
+        //right should be skipped
+        root->left->pruned = branch_and_bound(root->left);
+        num_of_traversed_node++;
         graphical_node.push(root->left);
-        if(!root->right->pruned){ //if not pruned continue building
-            build_tree(root->right);
-        }
-        if(!root->left->pruned){//if not pruned continue building
-            build_tree(root->left);
-        }
-    }
-    else{
-        graphical_node.push(root->left);
-        graphical_node.push(root->right);
         if(!root->left->pruned){
             build_tree(root->left);
         }
+    }
+    
+    if(!should_skip_right && should_skip_left){
+        //left should be skipped
+        root->right->pruned = branch_and_bound(root->right);
+        num_of_traversed_node++;
+        graphical_node.push(root->right);
         if(!root->right->pruned){
             build_tree(root->right);
+        }
+    }
+    
+    if(!should_skip_right && !should_skip_left){
+        //check whether we should build left subtree
+        root->left->pruned = branch_and_bound(root->left);
+        num_of_traversed_node++;
+        
+        //check whether we should build right subtree
+        root->right->pruned = branch_and_bound(root->right);
+        num_of_traversed_node++;
+
+        if(repeat_count[literals[root->depth-1].second-1] > not_repeat_count[literals[root->depth-1].second-1]){
+            graphical_node.push(root->right);
+            graphical_node.push(root->left);
+            if(!root->right->pruned){ //if not pruned continue building
+                build_tree(root->right);
+            }
+            if(!root->left->pruned){//if not pruned continue building
+                build_tree(root->left);
+            }
+        }
+        else{
+            graphical_node.push(root->left);
+            graphical_node.push(root->right);
+            if(!root->left->pruned){
+                build_tree(root->left);
+            }
+            if(!root->right->pruned){
+                build_tree(root->right);
+            }
         }
     }
     return;
@@ -550,18 +576,18 @@ int main(){
     
     // print_binary_tree(root ,"");
     // cout << endl;
-    // cout << "Nodes: " << num_of_traversed_node << endl;
-    // cout << "SUM of false Clauses " << best_sol << endl;
-    // cout << "Max Statisfied Weight " << get_max_weight() << endl;
+    cout << "Nodes: " << num_of_traversed_node << endl;
+    cout << "SUM of false Clauses " << best_sol << endl;
+    cout << "Max Statisfied Weight " << get_max_weight() << endl;
   
-    // for(int i = 0; i < num_of_variables; i++){
-    //     if(!CHECK_BIT(best_leaf->path,i)){
-    //         cout << "x" << i+1 << " " << "false" << endl;
-    //     }
-    //     else{
-    //         cout << "x" << i+1 << " " << "true" << endl;
-    //     }
-    // }
+    for(int i = 0; i < num_of_variables; i++){
+        if(!CHECK_BIT(best_leaf->path,i)){
+            cout << "x" << i+1 << " " << "false" << endl;
+        }
+        else{
+            cout << "x" << i+1 << " " << "true" << endl;
+        }
+    }
     init_graphics("Assignment 3 - Part2", WHITE);
     init_world (0.,0.,5000.,5000.);
     update_message("Fatemehsadat(Sara) Mahmoudi - Branch and Bound");
