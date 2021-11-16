@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <math.h>
 #include <time.h>
+#include <unistd.h>
 #include <bits/stdc++.h>
 #include "graphics.h"
 
@@ -659,7 +660,7 @@ void draw_nodes(){
             fillarc((n->graphic_index*x_pos+x_pos/2-0.5)*v_dist,root_y_pos * (n->depth-0.5),20,0,360);
             if (n->depth == 1){
                 flushinput();
-                // delay();
+                usleep(200000);
                 continue;
             }
             //draw the line to its parent
@@ -678,6 +679,7 @@ void draw_nodes(){
             
         }
         flushinput();
+        usleep(200000);
         // delay();
     }
 }
