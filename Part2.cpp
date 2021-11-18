@@ -516,23 +516,17 @@ void preprocess(){
         index++;
     }
     c = c_sort;
-    for(int i = 0; i < num_of_clauses; i++){
-        sort_clause_freq(i);
+    unsigned seed = 0;
+    for(int i = 0; i < 250; i++){
+        for(int j = 0; j < num_of_clauses; j++){
+            shuffle(c[j].vars, c[j].vars+c[j].vars_len,default_random_engine(seed));
+        }
+        best_sol_init();
+        if(best_sol_shuffle < best_sol){
+            best_sol = best_sol_shuffle;
+            best_leaf = best_leaf_shuffle;
+        }   
     }
-    best_sol_init();
-    if(best_sol_shuffle < best_sol){
-        best_sol = best_sol_shuffle;
-        best_leaf = best_leaf_shuffle;
-    }
-    for(int i = 0; i < num_of_clauses; i++){
-        sort_clause_all(i);
-    }
-    best_sol_init();
-    if(best_sol_shuffle < best_sol){
-        best_sol = best_sol_shuffle;
-        best_leaf = best_leaf_shuffle;
-    }
-    // cout << best_sol << endl;
     delete[] clause_visited;
 }
 
@@ -598,13 +592,13 @@ int main(){
         }
     } 
     
-    printf("Time taken: %.5fs\n", (double)(end - start)/CLOCKS_PER_SEC);
+    // printf("Time taken: %.5fs\n", (double)(end - start)/CLOCKS_PER_SEC);
     
     
-    init_graphics("Assignment 3 - Part1", WHITE);
-    init_world (0.,0.,5000.,5000.);
-    update_message("Fatemehsadat(Sara) Mahmoudi - Branch and Bound");
-    event_loop(act_on_button_press, NULL, NULL, drawscreen); 
+    // init_graphics("Assignment 3 - Part1", WHITE);
+    // init_world (0.,0.,5000.,5000.);
+    // update_message("Fatemehsadat(Sara) Mahmoudi - Branch and Bound");
+    // event_loop(act_on_button_press, NULL, NULL, drawscreen); 
     return 0;
 }
 
