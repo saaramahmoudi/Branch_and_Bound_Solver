@@ -564,13 +564,6 @@ int main(){
     }
 
     preprocess();
-    //clause_shuffle();
-    
-    
-    
-    //draw root
-    // fillarc(root->x_pos,root_pos_y,30,0,360);
-
 
     cout << "Initial Number of false Clauses " << best_sol << endl;
     cout << "Initial Max Statisfied clauses " << get_max_weight() << endl;
@@ -592,13 +585,13 @@ int main(){
         }
     } 
     
-    // printf("Time taken: %.5fs\n", (double)(end - start)/CLOCKS_PER_SEC);
+    printf("Time taken: %.5fs\n", (double)(end - start)/CLOCKS_PER_SEC);
     
     
-    // init_graphics("Assignment 3 - Part1", WHITE);
-    // init_world (0.,0.,5000.,5000.);
-    // update_message("Fatemehsadat(Sara) Mahmoudi - Branch and Bound");
-    // event_loop(act_on_button_press, NULL, NULL, drawscreen); 
+    init_graphics("Assignment 3 - Part1", WHITE);
+    init_world (0.,0.,5000.,5000.);
+    update_message("Fatemehsadat(Sara) Mahmoudi - Branch and Bound");
+    event_loop(act_on_button_press, NULL, NULL, drawscreen); 
     return 0;
 }
 
